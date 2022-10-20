@@ -56,7 +56,7 @@ class DropdownFormField<T> extends StatefulWidget {
   final InputDecoration? decoration;
   final Color? dropdownColor;
   final DropdownEditingController<T>? controller;
-  final void Function(T item)? onChanged;
+  final void Function(T? item)? onChanged;
   final void Function(T?)? onSaved;
   final String? Function(T?)? validator;
 
@@ -97,22 +97,21 @@ class DropdownFormField<T> extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  DropdownFormFieldState createState() => DropdownFormFieldState<T>();
+  DropdownFormFieldState<T> createState() => DropdownFormFieldState<T>();
 }
 
-class DropdownFormFieldState<T> extends State<DropdownFormField>
+class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
     with SingleTickerProviderStateMixin {
   final FocusNode _widgetFocusNode = FocusNode();
   final FocusNode _searchFocusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
-  final ValueNotifier<List<T>> _listItemsValueNotifier =
-      ValueNotifier<List<T>>([]);
+  final ValueNotifier<List<T>?> _listItemsValueNotifier =
+      ValueNotifier<List<T>?>([]);
   final TextEditingController _searchTextController = TextEditingController();
   final DropdownEditingController<T>? _controller =
       DropdownEditingController<T>();
 
-  final Function(T?, T?) _selectedFn =
-      (dynamic item1, dynamic item2) => item1 == item2;
+  final Function(T?, T?) _selectedFn = (T? item1, T? item2) => item1 == item2;
 
   bool get _isEmpty => _selectedItem == null;
   bool _isFocused = false;
@@ -126,7 +125,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField>
   Timer? _debounce;
   String? _lastSearchString;
 
-  DropdownEditingController<dynamic>? get _effectiveController =>
+  DropdownEditingController<T>? get _effectiveController =>
       widget.controller ?? _controller;
 
   DropdownFormFieldState() : super() {}
@@ -241,65 +240,77 @@ class DropdownFormFieldState<T> extends State<DropdownFormField>
           offset: Offset(0.0, size.height + 3.0),
           child: Material(
               elevation: 4.0,
-              child: SizedBox(
-                height: widget.dropdownHeight ?? 240,
-                child: Container(
-                    color: widget.dropdownColor ?? Colors.white70,
-                    child: ValueListenableBuilder(
-                        valueListenable: _listItemsValueNotifier,
-                        builder: (context, List<T> items, child) {
-                          return _options != null && _options!.length > 0
-                              ? ListView.builder(
-                                  shrinkWrap: true,
-                                  padding: EdgeInsets.zero,
-                                  itemCount: _options!.length,
-                                  itemBuilder: (context, position) {
-                                    T item = _options![position];
-                                    Function() onTap = () {
-                                      _listItemFocusedPosition = position;
-                                      _searchTextController.value =
-                                          TextEditingValue(text: "");
-                                      _removeOverlay();
-                                      _setValue();
-                                    };
-                                    ListTile listTile = widget.dropdownItemFn(
-                                      item,
-                                      position,
-                                      position == _listItemFocusedPosition,
-                                      (widget.selectedFn ?? _selectedFn)(
-                                          _selectedItem, item),
-                                      onTap,
-                                    );
-
-                                    return listTile;
-                                  })
-                              : Container(
-                                  padding: EdgeInsets.all(16),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        widget.emptyText,
-                                        style: TextStyle(color: Colors.black45),
-                                      ),
-                                      if (widget.onEmptyActionPressed != null)
-                                        TextButton(
-                                          onPressed: () async {
-                                            await widget
-                                                .onEmptyActionPressed!();
-                                            _search(_searchTextController
-                                                .value.text);
-                                          },
-                                          child: Text(widget.emptyActionText),
-                                        ),
-                                    ],
+              child: Container(
+                  color: widget.dropdownColor ?? Colors.white70,
+                  child: ValueListenableBuilder(
+                      valueListenable: _listItemsValueNotifier,
+                      builder: (context, List<T>? items, child) {
+                        double? boxHeight = null;
+                        Widget content;
+                        if (items == null) {
+                          // if items are loading
+                          content = Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        } else if (items.isEmpty) {
+                          content = Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  widget.emptyText,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.black45),
+                                ),
+                                if (widget.onEmptyActionPressed != null)
+                                  TextButton(
+                                    onPressed: () async {
+                                      await widget.onEmptyActionPressed!();
+                                      _search(_searchTextController.value.text);
+                                    },
+                                    child: Text(widget.emptyActionText),
                                   ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          boxHeight = widget.dropdownHeight ?? 240;
+                          content = ListView.builder(
+                              shrinkWrap: true,
+                              padding: EdgeInsets.zero,
+                              itemCount: _options!.length,
+                              itemBuilder: (context, position) {
+                                T item = items[position];
+                                Function() onTap = () {
+                                  _listItemFocusedPosition = position;
+                                  _searchTextController.value =
+                                      TextEditingValue(text: "");
+                                  _removeOverlay();
+                                  _setValue();
+                                };
+                                ListTile listTile = widget.dropdownItemFn(
+                                  item,
+                                  position,
+                                  position == _listItemFocusedPosition,
+                                  (widget.selectedFn ?? _selectedFn)(
+                                      _selectedItem, item),
+                                  onTap,
                                 );
-                        })),
-              )),
+
+                                return listTile;
+                              });
+                        }
+                        return SizedBox(
+                          height: boxHeight,
+                          child: content,
+                        );
+                      }))),
         ),
       );
     });
@@ -328,8 +339,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField>
       _overlayEntry = _createOverlayEntry();
       if (_overlayEntry != null) {
         // Overlay.of(context)!.insert(_overlayEntry!);
-        Overlay.of(context)!
-            .insertAll([_overlayBackdropEntry!, _overlayEntry!]);
+        Overlay.of(context).insertAll([_overlayBackdropEntry!, _overlayEntry!]);
         setState(() {
           _searchFocusNode.requestFocus();
         });
@@ -397,6 +407,9 @@ class DropdownFormFieldState<T> extends State<DropdownFormField>
   }
 
   _search(String str) async {
+    _listItemsValueNotifier.value = null;
+    debugPrint('*********************** null');
+
     List<T> items = await widget.findFn(str) as List<T>;
 
     if (str.isNotEmpty && widget.filterFn != null) {
