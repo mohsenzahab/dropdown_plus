@@ -27,7 +27,7 @@ class DropdownFormField<T> extends StatefulWidget {
   /// It will trigger on user search
   final bool Function(T item, String str)? filterFn;
 
-  /// Check item is selectd
+  /// Check item is selected
   final bool Function(T? item1, T? item2)? selectedFn;
 
   /// Return list of items what need to list for dropdown.
@@ -35,11 +35,11 @@ class DropdownFormField<T> extends StatefulWidget {
   final Future<List<T>> Function(String str) findFn;
 
   /// Build dropdown Items, it get called for all dropdown items
-  ///  [item] = [dynamic value] List item to build dropdown Listtile
+  ///  [item] = [dynamic value] List item to build dropdown ListTile
   /// [lasSelectedItem] = [null | dynamic value] last selected item, it gives user chance to highlight selected item
   /// [position] = [0,1,2...] Index of the list item
   /// [focused] = [true | false] is the item if focused, it gives user chance to highlight focused item
-  /// [onTap] = [Function] *important! just assign this function to Listtile.onTap  = onTap, incase you missed this,
+  /// [onTap] = [Function] *important! just assign this function to ListTile.onTap  = onTap, incase you missed this,
   /// the click event if the dropdown item will not work.
   ///
   final ListTile Function(
@@ -66,13 +66,13 @@ class DropdownFormField<T> extends StatefulWidget {
   /// Style the search box text
   final TextStyle? searchTextStyle;
 
-  /// Message to disloay if the search dows not match with any item, Default : "No matching found!"
+  /// Message to display if the search dows not match with any item, Default : "No matching found!"
   final String emptyText;
 
   /// Give action text if you want handle the empty search.
   final String emptyActionText;
 
-  /// this functon triggers on click of emptyAction button
+  /// this function triggers on click of emptyAction button
   final Future<void> Function()? onEmptyActionPressed;
 
   DropdownFormField({
@@ -158,72 +158,50 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
     _displayItem = widget.displayItemFn(_selectedItem);
 
     return CompositedTransformTarget(
-      link: this._layerLink,
-      child: GestureDetector(
-        onTap: () {
-          _widgetFocusNode.requestFocus();
-          _toggleOverlay();
-        },
-        child: Focus(
-          autofocus: widget.autoFocus,
-          focusNode: _widgetFocusNode,
-          onFocusChange: (focused) {
-            setState(() {
-              _isFocused = focused;
-            });
+        link: this._layerLink,
+        // Focus(
+        //     autofocus: widget.autoFocus,
+        //     focusNode: _widgetFocusNode,
+        //     onFocusChange: (focused) {
+        //       setState(() {
+        //         _isFocused = focused;
+        //       });
+        //     },
+        //     onKey: (focusNode, event) {
+        //       return _onKeyPressed(event);
+        //     },
+        child: TextFormField(
+          style: TextStyle(fontSize: 16, color: Colors.black87),
+          controller: _searchTextController,
+          cursorColor: Colors.black87,
+          focusNode: _searchFocusNode,
+          decoration: widget.decoration ??
+              InputDecoration(
+                border: UnderlineInputBorder(),
+              ),
+          //       suffixIcon: Icon(Icons.arrow_drop_down),),
+          //  backgroundCursorColor: Colors.transparent,
+          onChanged: (str) {
+            if (_overlayEntry == null) {
+              _addOverlay();
+            }
+            _onTextChanged(str);
           },
-          onKey: (focusNode, event) {
-            return _onKeyPressed(event);
+          onFieldSubmitted: (str) {
+            _searchTextController.value = TextEditingValue(text: "");
+            _setValue();
+            _removeOverlay();
+            _widgetFocusNode.nextFocus();
           },
-          child: FormField(
-            validator: (str) {
-              if (widget.validator != null) {
-                widget.validator!(_effectiveController!.value);
-              }
-            },
-            onSaved: (str) {
-              if (widget.onSaved != null) {
-                widget.onSaved!(_effectiveController!.value);
-              }
-            },
-            builder: (state) {
-              return InputDecorator(
-                decoration: widget.decoration ??
-                    InputDecoration(
-                      border: UnderlineInputBorder(),
-                      suffixIcon: Icon(Icons.arrow_drop_down),
-                    ),
-                isEmpty: _isEmpty,
-                isFocused: _isFocused,
-                child: this._overlayEntry != null
-                    ? EditableText(
-                        style: TextStyle(fontSize: 16, color: Colors.black87),
-                        controller: _searchTextController,
-                        cursorColor: Colors.black87,
-                        focusNode: _searchFocusNode,
-                        backgroundCursorColor: Colors.transparent,
-                        onChanged: (str) {
-                          if (_overlayEntry == null) {
-                            _addOverlay();
-                          }
-                          _onTextChanged(str);
-                        },
-                        onSubmitted: (str) {
-                          _searchTextController.value =
-                              TextEditingValue(text: "");
-                          _setValue();
-                          _removeOverlay();
-                          _widgetFocusNode.nextFocus();
-                        },
-                        onEditingComplete: () {},
-                      )
-                    : _displayItem ?? Container(),
-              );
-            },
-          ),
-        ),
-      ),
-    );
+          // onEditingComplete: () {},
+          onSaved: (str) => widget.onSaved?.call(_effectiveController!.value),
+          validator: (str) =>
+              widget.validator?.call(_effectiveController!.value),
+          onTap: () {
+            // _widgetFocusNode.requestFocus();
+            _toggleOverlay();
+          },
+        ));
   }
 
   OverlayEntry _createOverlayEntry() {
@@ -339,7 +317,8 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
       _overlayEntry = _createOverlayEntry();
       if (_overlayEntry != null) {
         // Overlay.of(context)!.insert(_overlayEntry!);
-        Overlay.of(context).insertAll([_overlayBackdropEntry!, _overlayEntry!]);
+        Overlay.of(context)!
+            .insertAll([_overlayBackdropEntry!, _overlayEntry!]);
         setState(() {
           _searchFocusNode.requestFocus();
         });
@@ -353,7 +332,8 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
       _overlayBackdropEntry!.remove();
       _overlayEntry!.remove();
       _overlayEntry = null;
-      _searchTextController.value = TextEditingValue.empty;
+      _searchFocusNode.unfocus();
+      // _searchTextController.value = TextEditingValue.empty;
       setState(() {});
     }
   }
@@ -408,9 +388,8 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
 
   _search(String str) async {
     _listItemsValueNotifier.value = null;
-    debugPrint('*********************** null');
 
-    List<T> items = await widget.findFn(str) as List<T>;
+    List<T> items = await widget.findFn(str);
 
     if (str.isNotEmpty && widget.filterFn != null) {
       items = items.where((item) => widget.filterFn!(item, str)).toList();
