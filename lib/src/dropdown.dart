@@ -51,7 +51,7 @@ class DropdownFormField<T> extends StatefulWidget {
   ) dropdownItemFn;
 
   /// Build widget to display selected item inside Form Field
-  final Widget Function(T? item) displayItemFn;
+  final String Function(T item) displayItemString;
 
   final InputDecoration? decoration;
   final Color? dropdownColor;
@@ -78,7 +78,7 @@ class DropdownFormField<T> extends StatefulWidget {
   DropdownFormField({
     Key? key,
     required this.dropdownItemFn,
-    required this.displayItemFn,
+    required this.displayItemString,
     required this.findFn,
     this.filterFn,
     this.autoFocus = false,
@@ -155,7 +155,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
   Widget build(BuildContext context) {
     // print("_overlayEntry : $_overlayEntry");
 
-    _displayItem = widget.displayItemFn(_selectedItem);
+    // _displayItem = widget.displayItemString(_selectedItem);
 
     return CompositedTransformTarget(
         link: this._layerLink,
@@ -267,8 +267,10 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
                                 T item = items[position];
                                 Function() onTap = () {
                                   _listItemFocusedPosition = position;
+                                  debugPrint('item selected ${item}');
                                   _searchTextController.value =
-                                      TextEditingValue(text: "");
+                                      TextEditingValue(
+                                          text: widget.displayItemString(item));
                                   _removeOverlay();
                                   _setValue();
                                 };

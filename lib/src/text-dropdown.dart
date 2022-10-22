@@ -35,10 +35,7 @@ class TextDropdownFormField extends StatelessWidget {
       onChanged: onChanged,
       validator: validator,
       dropdownHeight: dropdownHeight,
-      displayItemFn: (dynamic str) => Text(
-        str ?? '',
-        style: TextStyle(fontSize: 16),
-      ),
+      displayItemString: (str) => str,
       findFn: findFn ?? (dynamic str) async => options,
       filterFn: filterFn ??
           (dynamic item, str) =>

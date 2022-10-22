@@ -79,10 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onSaved: (dynamic str) {},
               onChanged: (dynamic str) {},
               validator: (dynamic str) {},
-              displayItemFn: (dynamic item) => Text(
-                (item ?? {})['name'] ?? '',
-                style: TextStyle(fontSize: 16),
-              ),
+              displayItemString: (item) => (item)['name'] ?? '',
               findFn: (dynamic str) async => _roles,
               selectedFn: (dynamic item1, dynamic item2) {
                 if (item1 != null && item2 != null) {
