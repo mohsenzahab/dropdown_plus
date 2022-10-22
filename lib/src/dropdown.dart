@@ -56,7 +56,7 @@ class DropdownFormField<T> extends StatefulWidget {
   final InputDecoration? decoration;
   final Color? dropdownColor;
   final DropdownEditingController<T>? controller;
-  final void Function(T? item)? onChanged;
+  final void Function(String? item)? onChanged;
   final void Function(T?)? onSaved;
   final String? Function(T?)? validator;
 
@@ -348,6 +348,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
   }
 
   _onTextChanged(String? str) {
+    widget.onChanged?.call(str);
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
       // print("_onChanged: $_lastSearchString = $str");
@@ -410,9 +411,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
 
     _effectiveController!.value = _selectedItem;
 
-    if (widget.onChanged != null) {
-      widget.onChanged!(_selectedItem);
-    }
+    widget.onChanged?.call(_searchTextController.text);
 
     setState(() {});
   }
@@ -421,9 +420,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
     var item;
     _effectiveController!.value = item;
 
-    if (widget.onChanged != null) {
-      widget.onChanged!(_selectedItem);
-    }
+    widget.onChanged?.call(_searchTextController.text);
     _searchTextController.value = TextEditingValue(text: "");
   }
 }
