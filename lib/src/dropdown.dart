@@ -23,6 +23,7 @@ class DropdownEditingController<T> extends ChangeNotifier {
 /// Create a dropdown form field
 class DropdownFormField<T> extends StatefulWidget {
   final bool autoFocus;
+  final bool readOnly;
 
   /// It will trigger on user search
   final bool Function(T item, String str)? filterFn;
@@ -75,26 +76,27 @@ class DropdownFormField<T> extends StatefulWidget {
   /// this function triggers on click of emptyAction button
   final Future<void> Function()? onEmptyActionPressed;
 
-  DropdownFormField({
-    Key? key,
-    required this.dropdownItemFn,
-    required this.displayItemString,
-    required this.findFn,
-    this.filterFn,
-    this.autoFocus = false,
-    this.controller,
-    this.validator,
-    this.decoration,
-    this.dropdownColor,
-    this.onChanged,
-    this.onSaved,
-    this.dropdownHeight,
-    this.searchTextStyle,
-    this.emptyText = "No matching found!",
-    this.emptyActionText = 'Create new',
-    this.onEmptyActionPressed,
-    this.selectedFn,
-  }) : super(key: key);
+  DropdownFormField(
+      {Key? key,
+      required this.dropdownItemFn,
+      required this.displayItemString,
+      required this.findFn,
+      this.filterFn,
+      this.autoFocus = false,
+      this.controller,
+      this.validator,
+      this.decoration,
+      this.dropdownColor,
+      this.onChanged,
+      this.onSaved,
+      this.dropdownHeight,
+      this.searchTextStyle,
+      this.emptyText = "No matching found!",
+      this.emptyActionText = 'Create new',
+      this.onEmptyActionPressed,
+      this.selectedFn,
+      this.readOnly = false})
+      : super(key: key);
 
   @override
   DropdownFormFieldState<T> createState() => DropdownFormFieldState<T>();
@@ -107,7 +109,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
   final LayerLink _layerLink = LayerLink();
   final ValueNotifier<List<T>?> _listItemsValueNotifier =
       ValueNotifier<List<T>?>([]);
-  final TextEditingController _searchTextController = TextEditingController();
+  late final TextEditingController _searchTextController;
   final DropdownEditingController<T>? _controller =
       DropdownEditingController<T>();
 
@@ -136,6 +138,10 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
 
     if (widget.autoFocus) _widgetFocusNode.requestFocus();
     _selectedItem = _effectiveController!.value;
+    _searchTextController = TextEditingController(
+        text: _selectedItem == null
+            ? null
+            : widget.displayItemString(_selectedItem!));
 
     _searchFocusNode.addListener(() {
       if (!_searchFocusNode.hasFocus && _overlayEntry != null) {
@@ -173,6 +179,18 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
         child: TextFormField(
           style: TextStyle(fontSize: 16, color: Colors.black87),
           controller: _searchTextController,
+          onTap: () {
+            if (_searchTextController.selection ==
+                TextSelection.fromPosition(TextPosition(
+                    offset: _searchTextController.text.length - 1))) {
+              setState(() {
+                _searchTextController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: _searchTextController.text.length));
+              });
+            }
+            // _widgetFocusNode.requestFocus();
+            _toggleOverlay();
+          },
           cursorColor: Colors.black87,
           focusNode: _searchFocusNode,
           decoration: widget.decoration ??
@@ -181,6 +199,8 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
               ),
           //    inorder   suffixIcon: Icon(Icons.arrow_drop_down),),
           //  backgroundCursorColor: Colors.transparent,
+          readOnly: widget.readOnly,
+
           onChanged: (str) {
             if (_overlayEntry == null) {
               _addOverlay();
@@ -197,10 +217,6 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
           onSaved: (str) => widget.onSaved?.call(_effectiveController!.value),
           validator: (str) =>
               widget.validator?.call(_effectiveController!.value),
-          onTap: () {
-            // _widgetFocusNode.requestFocus();
-            _toggleOverlay();
-          },
         ));
   }
 
@@ -212,6 +228,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
     var overlay = OverlayEntry(builder: (context) {
       return Positioned(
         width: size.width,
+        // bottom: MediaQuery.of(context).viewInsets.bottom,
         child: CompositedTransformFollower(
           link: this._layerLink,
           showWhenUnlinked: false,
@@ -316,11 +333,23 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
     if (_overlayEntry == null) {
       _search("");
       _overlayBackdropEntry = _createBackdropOverlay();
+
       _overlayEntry = _createOverlayEntry();
+
+      // _listFocusNode.requestFocus();
       if (_overlayEntry != null) {
         // Overlay.of(context)!.insert(_overlayEntry!);
         Overlay.of(context)!
             .insertAll([_overlayBackdropEntry!, _overlayEntry!]);
+        // ScrollableState scrollableState = Scrollable.of(context)!;
+
+        // ScrollPosition position = scrollableState.position;
+        // position.ensureVisible(
+        //   nodeObject!,
+        //   alignment: 100,
+        //   duration: const Duration(milliseconds: 100),
+        //   curve: Curves.decelerate,
+        // );
         setState(() {
           _searchFocusNode.requestFocus();
         });
@@ -341,6 +370,7 @@ class DropdownFormFieldState<T> extends State<DropdownFormField<T>>
   }
 
   _toggleOverlay() {
+    if (widget.readOnly) return;
     if (_overlayEntry == null)
       _addOverlay();
     else
